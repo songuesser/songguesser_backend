@@ -1,29 +1,26 @@
 import {
   WebSocketGateway,
-  WebSocketServer,
   SubscribeMessage,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  MessageBody,
 } from '@nestjs/websockets';
+import { Socket } from 'socket.io';
+import { UserService } from './user.service';
 
 @WebSocketGateway({ cors: true })
 class UserGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer() server;
-  users = 0;
-  async handleConnection() {
-    this.users++;
+  constructor(private readonly userService: UserService) {}
 
-    this.server.emit('users', this.users);
-  }
-  async handleDisconnect() {
-    this.users--;
-
-    this.server.emit('users', this.users);
+  @SubscribeMessage('userJoin')
+  async handleConnection(client: Socket, @MessageBody() userName: string) {
+    console.log(client.id);
+    console.log(userName);
   }
 
-  @SubscribeMessage('chat')
-  async onChat(client, message) {
-    client.broadcast.emit('chat', message);
+  @SubscribeMessage('userLeave')
+  async handleDisconnect(client: Socket) {
+    console.log(client.id);
   }
 }
 
