@@ -35,10 +35,10 @@ export class UserService {
     const currentUsersUpdates = this.activeUsers.map((user) =>
       user.userId == userDTO.userId
         ? {
-            socket: user.socket,
-            userId: user.userId,
-            username: userDTO.username,
-          }
+          socket: user.socket,
+          userId: user.userId,
+          username: userDTO.username,
+        }
         : user,
     );
 
@@ -62,4 +62,15 @@ export class UserService {
 
   private _checkForDuplicateUser = (username: string) =>
     this.activeUsers.some((user) => user.username == username);
+
+  getSocketByClientId(id: string) {
+    console.error("clientid: " + id)
+    const user = this.activeUsers.find(
+      (user) => user.userId == id);
+      console.log("Found object for userid: " + user.userId)
+    if (user != null) {
+      return user.socket
+    }
+    return null
+  }
 }

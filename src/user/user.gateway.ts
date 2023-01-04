@@ -14,12 +14,13 @@ import { UserService } from './user.service';
 @WebSocketGateway({ cors: true })
 class UserGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
-  async handleConnection(client: Socket) {
+  async handleConnection(client: Socket) { 
+
     this.userService.createUser(client, {
       userId: client.id,
-      username: randomUUID().toString(),
+      username: client.handshake.query.userName as string,
     });
   }
 
@@ -36,8 +37,10 @@ class UserGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('setUsername')
   setUserName(@MessageBody() userDTO: UserDTO) {
+    console.log("changed usermane")
     this.userService.setUserName(userDTO);
   }
+  
 }
 
 export { UserGateway };
