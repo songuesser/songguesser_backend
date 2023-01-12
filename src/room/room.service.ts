@@ -1,34 +1,31 @@
-import { Injectable} from '@nestjs/common';
-import { Injector } from '@nestjs/core/injector/injector';
+import { Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
-import { RoomDTO } from 'src/dto/roomDTO';
-import { Room } from 'src/models/room';
-import { UserService } from 'src/user/user.service';
+import { Room } from '../models/room';
+import { RoomDTO } from '../dto/roomDTO';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class RoomService {
   activeRooms: Array<Room>;
-
   defaultRoom: Room;
   userService: UserService;
-  
 
-  constructor(private uS: UserService){
-    this.activeRooms = new Array<Room>;
-    this.defaultRoom = new Room("0","Entrance");
+  constructor(private uS: UserService) {
+    this.activeRooms = new Array<Room>();
+    this.defaultRoom = new Room('0', 'Entrance');
     this.activeRooms.push(this.defaultRoom);
     this.userService = uS;
   }
 
   createRoom = (clientId: string, roomName: string) => {
-    console.log("userService: " + this.userService)
+    console.log('userService: ' + this.userService);
 
     const room: Room = {
-      roomId: "ABCD",
+      roomId: 'ABCD',
       roomName: roomName,
-      socket: this.userService.getSocketByClientId(clientId),
+      socket: this.userService.getUserInformation(clientId).socket,
     };
-    
+
     if (this._checkForDuplicateRoom(roomName)) {
       console.log('Roomname is already used');
       room.socket.emit('Roomname is already used');
@@ -43,14 +40,13 @@ export class RoomService {
   };
 
   setRoomName = (roomDTO: RoomDTO) => {
-
     if (this.getRoomInformation(roomDTO.roomId) == undefined) {
       // throw error room does not exist
       return;
     }
 
     const currentRoomsUpdates = this.activeRooms.map((room) =>
-    room.roomId == roomDTO.roomId
+      room.roomId == roomDTO.roomId
         ? {
             socket: room.socket,
             roomId: room.roomId,
@@ -82,6 +78,6 @@ export class RoomService {
     this.activeRooms.some((room) => room.roomName == roomName);
 
   listRooms = (client: Socket) => {
-    client.emit('availableRooms', this.activeRooms)
-  }
+    client.emit('availableRooms', this.activeRooms);
+  };
 }
