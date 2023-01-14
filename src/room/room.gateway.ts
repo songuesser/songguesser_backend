@@ -1,6 +1,7 @@
 import {
   ConnectedSocket,
   MessageBody,
+  OnGatewayConnection,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -13,10 +14,14 @@ import { RoomDTO } from '../dto/roomDTO';
 import { JoinRoomDTO } from '../dto/joinRoomDTO';
 
 @WebSocketGateway({ cors: true })
-class RoomGateway {
+class RoomGateway implements OnGatewayConnection {
   @WebSocketServer() server: Server;
 
   constructor(private readonly roomService: RoomService) {}
+
+  handleConnection() {
+    this.listRooms();
+  }
 
   @SubscribeMessage(WEBSOCKET_CHANNELS.CREATE_ROOM)
   createRoom(@MessageBody() createRoomDTO: CreateRoomDTO) {
