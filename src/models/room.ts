@@ -1,15 +1,17 @@
-import { Socket } from 'socket.io';
+import { Player } from './players';
+import { UserWithOutSocket } from './user';
 
 class Room {
   roomName: string;
   roomId: string;
-  socket: Socket;
-  
-  constructor(roomId: string, roomName: string){
+  players: Player[];
+  admin: UserWithOutSocket;
+
+  constructor(roomId: string, roomName: string) {
     this.roomId = roomId;
-    this.roomName =roomName;
+    this.roomName = roomName;
+    this.players = [];
   }
 }
-
 
 export { Room };

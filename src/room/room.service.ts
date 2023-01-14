@@ -1,46 +1,61 @@
 import { Injectable } from '@nestjs/common';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { Room } from '../models/room';
 import { RoomDTO } from '../dto/roomDTO';
 import { UserService } from '../user/user.service';
+import { randomUUID } from 'crypto';
+import { WEBSOCKET_CHANNELS } from '../models/enums/websocket-channels';
+import { CreateRoomDTO } from '../dto/createRoomDTO';
+import { User, UserWithOutSocket } from '../models/user';
+import { JoinRoomDTO } from '../dto/joinRoomDTO';
 
 @Injectable()
 export class RoomService {
   activeRooms: Array<Room>;
-  defaultRoom: Room;
   userService: UserService;
 
   constructor(private uS: UserService) {
     this.activeRooms = new Array<Room>();
-    this.defaultRoom = new Room('0', 'Entrance');
-    this.activeRooms.push(this.defaultRoom);
     this.userService = uS;
   }
 
-  createRoom = (clientId: string, roomName: string) => {
-    console.log('userService: ' + this.userService);
+  createRoom = async (createRoomDTO: CreateRoomDTO, server: Server) => {
+    const { clientId, roomName } = createRoomDTO;
+    const userSocket = this.userService.getUserInformation(
+      createRoomDTO.clientId,
+    ).socket;
+
+    const user = this.userService.getUserInformation(clientId);
+
+    const admin: UserWithOutSocket = {
+      userId: user.userId,
+      username: user.username,
+    };
 
     const room: Room = {
-      roomId: 'ABCD',
+      roomId: randomUUID(),
       roomName: roomName,
-      socket: this.userService.getUserInformation(clientId).socket,
+      players: [],
+      admin: admin,
     };
 
     if (this._checkForDuplicateRoom(roomName)) {
-      console.log('Roomname is already used');
-      room.socket.emit('Roomname is already used');
+      userSocket.emit('Roomname is already used');
     }
 
     this.activeRooms.push(room);
+    userSocket.join(room.roomId);
     console.log(roomName + ' was created!');
-    room.socket.emit('roomCreated', {
+    userSocket.emit(WEBSOCKET_CHANNELS.CREATE_ROOM, {
       roomId: room.roomId,
       roomName: room.roomName,
     });
+    this.listRooms(server);
   };
 
-  setRoomName = (roomDTO: RoomDTO) => {
-    if (this.getRoomInformation(roomDTO.roomId) == undefined) {
+  setRoomName = (socket: Socket, roomDTO: RoomDTO, server: Server) => {
+    const currentRoom = this.getRoomInformation(roomDTO.roomId);
+    if (currentRoom == undefined) {
       // throw error room does not exist
       return;
     }
@@ -48,8 +63,7 @@ export class RoomService {
     const currentRoomsUpdates = this.activeRooms.map((room) =>
       room.roomId == roomDTO.roomId
         ? {
-            socket: room.socket,
-            roomId: room.roomId,
+            ...room,
             roomName: roomDTO.roomName,
           }
         : room,
@@ -57,16 +71,58 @@ export class RoomService {
 
     this.activeRooms = currentRoomsUpdates;
 
-    this.getRoomInformation(roomDTO.roomId).socket.emit(
-      'setRoomName',
-      roomDTO.roomName,
-    );
+    const renamedRoom: Room = {
+      roomId: roomDTO.roomId,
+      roomName: roomDTO.roomName,
+      ...currentRoom,
+    };
+
+    this.updateRoom(renamedRoom);
+
+    socket
+      .to(roomDTO.roomId)
+      .emit(WEBSOCKET_CHANNELS.SET_ROOM_NAME, { name: roomDTO.roomName });
+    this.listRooms(server);
   };
 
   removeRoom = (roomName: string) => {
     this.activeRooms = this.activeRooms.filter(
-      (room) => room.roomName == roomName,
+      (room) => room.roomId == roomName,
     );
+  };
+
+  assignUserToRoom = (
+    socket: Socket,
+    joinRoomDTO: JoinRoomDTO,
+    server: Server,
+  ) => {
+    const { roomId } = joinRoomDTO;
+    const room: Room = this.getRoomInformation(roomId);
+    if (room == undefined) {
+      // throw error room does not exist
+      return;
+    }
+
+    console.log(socket.id);
+    console.log(this.userService.activeUsers);
+    const user: User = this.userService.getUserInformation(socket.id);
+    console.log(user);
+    const players = room.players;
+
+    if (!players.map((player) => player.userId).includes(user.userId)) {
+      players.push({
+        userId: user.userId,
+        username: user.username,
+        points: 0,
+        guessedSong: '',
+        selectedSong: '',
+      });
+    }
+
+    const roomWithNewPlayer: Room = { ...room, players: players };
+
+    this.updateRoom(roomWithNewPlayer);
+    this.listRooms(server);
   };
 
   //Returns undefined if room does not exist,
@@ -77,7 +133,15 @@ export class RoomService {
   private _checkForDuplicateRoom = (roomName: string) =>
     this.activeRooms.some((room) => room.roomName == roomName);
 
-  listRooms = (client: Socket) => {
-    client.emit('availableRooms', this.activeRooms);
+  listRooms = (server: Server) => {
+    server.emit(WEBSOCKET_CHANNELS.LIST_ROOMS, { rooms: this.activeRooms });
+  };
+
+  updateRoom = (newRoom: Room) => {
+    const currentRoomsUpdates = this.activeRooms.map((room) =>
+      room.roomId == newRoom.roomId ? newRoom : room,
+    );
+
+    this.activeRooms = currentRoomsUpdates;
   };
 }

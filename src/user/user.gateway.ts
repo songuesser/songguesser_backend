@@ -38,7 +38,7 @@ class UserGateway implements OnGatewayDisconnect {
     this.userService.createUser(socket, createUserDTO);
   }
 
-  @SubscribeMessage(WEBSOCKET_CHANNELS.SETUSERNAME)
+  @SubscribeMessage(WEBSOCKET_CHANNELS.SET_USERNAME)
   setUserName(@MessageBody() userDTO: UserDTO) {
     console.log('changed usermane');
     this.userService.setUserName(userDTO);

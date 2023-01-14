@@ -11,7 +11,7 @@ export class UserService {
   activeUsers: User[] = [];
 
   createUser = (socket: Socket, createUserDTO: CreateUserDTO) => {
-    const userUID = randomUUID();
+    const userUID = socket.id;
     const user: User = {
       userId: userUID,
       username: createUserDTO.username,
@@ -50,7 +50,7 @@ export class UserService {
     this.activeUsers = currentUsersUpdates;
 
     this.getUserInformation(userDTO.userId).socket.emit(
-      WEBSOCKET_CHANNELS.SETUSERNAME,
+      WEBSOCKET_CHANNELS.SET_USERNAME,
       userDTO.username,
     );
   };
