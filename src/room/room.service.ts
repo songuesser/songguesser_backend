@@ -115,6 +115,7 @@ export class RoomService {
         points: 0,
         guessedSong: '',
         selectedSong: '',
+        hasGuessed: false,
       });
     }
 
