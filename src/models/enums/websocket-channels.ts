@@ -5,6 +5,8 @@ const enum WEBSOCKET_CHANNELS {
   LIST_ROOMS = 'listRooms',
   SET_ROOM_NAME = 'setRoomName',
   JOIN_ROOM = 'joinRoom',
+  IN_GAME = 'inGame',
+  CREATE_GAME = 'createGame',
 }
 
 export { WEBSOCKET_CHANNELS };

@@ -1,0 +1,6 @@
+enum GAMESTATE {
+  GUESSING,
+  SELECTING,
+}
+
+export { GAMESTATE };

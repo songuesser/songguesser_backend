@@ -104,7 +104,6 @@ export class RoomService {
     }
 
     console.log(socket.id);
-    console.log(this.userService.activeUsers);
     const user: User = this.userService.getUserInformation(socket.id);
     console.log(user);
     const players = room.players;

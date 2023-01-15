@@ -42,13 +42,11 @@ class RoomGateway implements OnGatewayConnection {
 
   @SubscribeMessage(WEBSOCKET_CHANNELS.SET_ROOM_NAME)
   setRoomName(@ConnectedSocket() socket, @MessageBody() roomDTO: RoomDTO) {
-    console.log('listing rooms...');
     this.roomService.setRoomName(socket, roomDTO, this.server);
   }
 
   @SubscribeMessage(WEBSOCKET_CHANNELS.JOIN_ROOM)
   joinRoom(@ConnectedSocket() socket, @MessageBody() joinRoomDTO: JoinRoomDTO) {
-    console.log('listing rooms...');
     this.roomService.assignUserToRoom(socket, joinRoomDTO, this.server);
   }
 }

@@ -1,4 +1,4 @@
-import { Player } from './players';
+import { Player } from './player';
 import { UserWithOutSocket } from './user';
 
 class Room {
