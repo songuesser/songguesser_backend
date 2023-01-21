@@ -1,14 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Socket } from 'socket.io';
 import { CreateUserDTO } from 'src/dto/createUserDTO';
 import { UserDTO } from 'src/dto/userDTO';
 import { WEBSOCKET_CHANNELS } from 'src/models/enums/websocket-channels';
 import { User } from 'src/models/user';
+import { RoomService } from '../room/room.service';
 
 @Injectable()
 export class UserService {
   activeUsers: User[] = [];
+
+  constructor(
+    @Inject(forwardRef(() => RoomService))
+    private readonly roomService: RoomService,
+  ) {}
 
   createUser = (socket: Socket, createUserDTO: CreateUserDTO) => {
     const userUID = socket.id;
@@ -29,6 +35,7 @@ export class UserService {
       userId: userUID,
       username: user.username,
     });
+    this.roomService.listRooms(undefined, socket);
   };
 
   setUserName = (userDTO: UserDTO) => {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { Room } from '../models/room';
 import { RoomDTO } from '../dto/roomDTO';
@@ -11,13 +11,11 @@ import { JoinRoomDTO } from '../dto/joinRoomDTO';
 
 @Injectable()
 export class RoomService {
-  activeRooms: Array<Room>;
-  userService: UserService;
-
-  constructor(private uS: UserService) {
-    this.activeRooms = new Array<Room>();
-    this.userService = uS;
-  }
+  activeRooms: Room[] = [];
+  constructor(
+    @Inject(forwardRef(() => UserService))
+    private userService: UserService,
+  ) {}
 
   createRoom = async (createRoomDTO: CreateRoomDTO, server: Server) => {
     const { clientId, roomName } = createRoomDTO;
@@ -105,7 +103,6 @@ export class RoomService {
 
     console.log(socket.id);
     const user: User = this.userService.getUserInformation(socket.id);
-    console.log(user);
     const players = room.players;
 
     if (!players.map((player) => player.userId).includes(user.userId)) {
@@ -118,7 +115,7 @@ export class RoomService {
         hasGuessed: false,
       });
     }
-
+    socket.join(roomId);
     const roomWithNewPlayer: Room = { ...room, players: players };
 
     this.updateRoom(roomWithNewPlayer);
@@ -133,8 +130,12 @@ export class RoomService {
   private _checkForDuplicateRoom = (roomName: string) =>
     this.activeRooms.some((room) => room.roomName == roomName);
 
-  listRooms = (server: Server) => {
-    server.emit(WEBSOCKET_CHANNELS.LIST_ROOMS, { rooms: this.activeRooms });
+  listRooms = (server?: Server, socket?: Socket) => {
+    if (socket) {
+      socket.emit(WEBSOCKET_CHANNELS.LIST_ROOMS, { rooms: this.activeRooms });
+    } else {
+      server.emit(WEBSOCKET_CHANNELS.LIST_ROOMS, { rooms: this.activeRooms });
+    }
   };
 
   updateRoom = (newRoom: Room) => {

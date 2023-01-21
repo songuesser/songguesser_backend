@@ -2,10 +2,13 @@ import { GAMESTATE } from './enums/game-state';
 import { Player } from './player';
 
 class Game {
-  player: Player[];
+  playersJoined: Player[];
+  playersThatShouldJoin: Player[];
   round: 0;
   state: GAMESTATE;
   chat: string[];
+  gameId: string;
+  name: string;
 }
 
 export { Game };
