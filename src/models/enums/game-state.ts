@@ -1,6 +1,7 @@
 enum GAMESTATE {
   GUESSING,
   SELECTING,
+  END,
 }
 
 export { GAMESTATE };

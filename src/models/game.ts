@@ -4,7 +4,7 @@ import { Player } from './player';
 class Game {
   playersJoined: Player[];
   playersThatShouldJoin: Player[];
-  round: 0;
+  round: number;
   state: GAMESTATE;
   chat: string[];
   gameId: string;
