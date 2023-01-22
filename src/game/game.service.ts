@@ -132,7 +132,7 @@ export class GameService {
   private handleRounds(game: Game, server: Server) {
     const maxRounds = 3;
     const amountOfPlayers: number = game.playersJoined.length;
-    setTimeout(() => this.setSelectTime(game, server), 3000);
+    setTimeout(() => this.setSelectTime(game.gameId, server), 3000);
 
     for (let j = 0; j <= maxRounds - 1; j++) {
       for (let i = 0; i <= amountOfPlayers - 1; i++) {
