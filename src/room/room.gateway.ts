@@ -19,7 +19,7 @@ class RoomGateway implements  OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly roomService: RoomService) {}
 
   async handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    console.log("RoomGateway --- Connected");
     console.log('Player Name: ' + client.handshake.query.userName)
     console.log('Player Language: ' + client.handshake.query.language)
   }

@@ -5,10 +5,12 @@ import { UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
 import { RoomService } from './room/room.service';
 import { RoomModule } from './room/room.module';
+import { SpotifyService } from './spotify/spotify.service';
+import { SpotifyModule } from './spotify/spotify.module';
 
 @Module({
-  imports: [UserModule,RoomModule],
+  imports: [UserModule,RoomModule,SpotifyModule],
   controllers: [AppController],
-  providers: [AppService, UserService,RoomService],
+  providers: [AppService, UserService,RoomService,SpotifyService],
 })
 export class AppModule {}

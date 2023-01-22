@@ -17,7 +17,7 @@ class UserGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly userService: UserService) { }
 
   async handleConnection(client: Socket) { 
-
+    console.log("UserGateway --- Connected")
     this.userService.createUser(client, {
       userId: client.id,
       username: client.handshake.query.userName as string,
