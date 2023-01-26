@@ -1,4 +1,5 @@
 import {
+  ConnectedSocket,
   MessageBody,
   SubscribeMessage,
   WebSocketGateway,
@@ -10,6 +11,9 @@ import { WEBSOCKET_CHANNELS } from '../models/enums/websocket-channels';
 import { SendMessageDTO } from '../dto/sendMessageDTO';
 import { CreateGameDTO } from '../dto/createGameDTO';
 import { AssignPlayerToGameDTO } from '../dto/assignPlayerToGameDTO';
+import { Song } from '../models/song';
+import { Socket } from 'dgram';
+import { SelectSongDTO } from '../dto/selectSongDTO';
 
 @WebSocketGateway({ cors: true })
 class GameGateway {
@@ -31,8 +35,12 @@ class GameGateway {
   sendPlayerToGame(
     @MessageBody() assignPlayerToGameDTO: AssignPlayerToGameDTO,
   ) {
-    console.log(assignPlayerToGameDTO);
     this.gameService.assignPlayerToRoom(assignPlayerToGameDTO, this.server);
+  }
+
+  @SubscribeMessage(WEBSOCKET_CHANNELS.SELECT_SONG)
+  setSelectedSong(@MessageBody() selectSongDTO: SelectSongDTO) {
+    this.gameService.setSelectedSongForPlayer(selectSongDTO);
   }
 }
 

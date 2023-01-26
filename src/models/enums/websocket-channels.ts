@@ -10,6 +10,8 @@ const enum WEBSOCKET_CHANNELS {
   IN_GAME_JOIN_PLAYER = 'inGameJoinPlayer',
   CREATE_GAME = 'createGame',
   RUNNING_GAME = 'runningGame',
+  MATCHING_SONGS = 'matchingSongs',
+  SELECT_SONG = 'selectSong',
 }
 
 export { WEBSOCKET_CHANNELS };

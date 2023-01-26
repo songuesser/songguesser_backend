@@ -1,9 +1,10 @@
+import { Song } from './song';
 import { UserWithOutSocket } from './user';
 
 class Player extends UserWithOutSocket {
   points: number;
-  selectedSong: string;
-  guessedSong: string;
+  selectedSong: Song | undefined;
+  guessedSong: Song | undefined;
   hasGuessed: boolean;
 }
 

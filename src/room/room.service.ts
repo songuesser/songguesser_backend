@@ -110,8 +110,8 @@ export class RoomService {
         userId: user.userId,
         username: user.username,
         points: 0,
-        guessedSong: '',
-        selectedSong: '',
+        guessedSong: undefined,
+        selectedSong: undefined,
         hasGuessed: false,
       });
     }

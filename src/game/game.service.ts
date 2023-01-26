@@ -14,15 +14,24 @@ import { AssignPlayerToGameDTO } from '../dto/assignPlayerToGameDTO';
 import { randomUUID } from 'crypto';
 import { CountDown } from '../models/countdown';
 import { Rankings } from '../models/rankings';
+import { SpotifyService } from '../../spotify/spotify.service';
+import { Socket } from 'dgram';
+import { Song } from '../models/song';
+import { SelectSongDTO } from '../dto/selectSongDTO';
 
 @Injectable()
 export class GameService {
   runningGames: Game[] = [];
+  turnTime = 30;
 
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly spotifyService: SpotifyService,
+  ) {}
 
   redirectMessage(sendMessageDTO: SendMessageDTO, server: Server) {
-    const { roomId, message, userId } = sendMessageDTO;
+    const { roomId, message, userId, userIdOfPersonThatSelectedSong } =
+      sendMessageDTO;
     const user = this.userService.getUserInformation(userId);
 
     if (user == undefined) {
@@ -39,20 +48,86 @@ export class GameService {
       return;
     }
 
-    const chatMessage: ChatMessage = {
-      id: randomUUID(),
-      message: message,
-      time: new Date().toDateString(),
-      player: { userId: user.userId, username: user.username },
-    };
+    if (userIdOfPersonThatSelectedSong == '') {
+      console.log('Cant calculate points dont know who');
+      return;
+    }
 
-    const chatMessageEvent: GameEvent = {
-      eventType: EVENTS.MESSAGE,
-      game: game,
-      data: chatMessage,
-    };
+    const correct =
+      this.checkForCorrectAnswer(
+        roomId,
+        message,
+        userId,
+        userIdOfPersonThatSelectedSong,
+      ) ?? false;
 
-    server.to(roomId).emit(WEBSOCKET_CHANNELS.IN_GAME, chatMessageEvent);
+    if (correct) {
+      const chatMessage: ChatMessage = {
+        id: randomUUID(),
+        message: `Server: ${user.username} has guessed correctly`,
+        time: new Date().toDateString(),
+        player: { userId: user.userId, username: user.username },
+      };
+
+      const chatMessageEvent: GameEvent = {
+        eventType: EVENTS.MESSAGE,
+        game: game,
+        data: chatMessage,
+      };
+
+      server.to(roomId).emit(WEBSOCKET_CHANNELS.IN_GAME, chatMessageEvent);
+    } else {
+      const chatMessage: ChatMessage = {
+        id: randomUUID(),
+        message: message,
+        time: new Date().toDateString(),
+        player: { userId: user.userId, username: user.username },
+      };
+
+      const chatMessageEvent: GameEvent = {
+        eventType: EVENTS.MESSAGE,
+        game: game,
+        data: chatMessage,
+      };
+
+      server.to(roomId).emit(WEBSOCKET_CHANNELS.IN_GAME, chatMessageEvent);
+    }
+  }
+
+  checkForCorrectAnswer(
+    roomId: string,
+    message: string,
+    userId: string,
+    userIdOfPersonThatSelectedSong: string,
+  ): boolean {
+    const game = this.findGameById(roomId);
+    const songThatPersonSet: Song = game.playersJoined.find(
+      (player) => player.userId == userIdOfPersonThatSelectedSong,
+    ).selectedSong;
+
+    console.log(userIdOfPersonThatSelectedSong);
+    console.log(game.playersJoined);
+    console.log(songThatPersonSet);
+
+    if (
+      songThatPersonSet.name.toLocaleLowerCase().trim() ==
+      message.toLowerCase().trim()
+    ) {
+      const player = game.playersJoined.find(
+        (player) => player.userId == userId,
+      );
+
+      const newPlayer = { ...player, points: player.points + 100 };
+      const newPlayers = game.playersJoined.map((player) =>
+        player.userId == userId ? newPlayer : player,
+      );
+      const updatedGame = { ...game, playersJoined: newPlayers };
+      this.updateGame(updatedGame);
+
+      return true;
+    }
+
+    return false;
   }
 
   setupGame(createGameDTO: CreateGameDTO, server: Server) {
@@ -116,43 +191,28 @@ export class GameService {
   private startGame(game: Game, server: Server) {
     const countdown: CountDown = {
       message: 'Game start',
-      seconds: 3,
+      totalTime: 3,
+      currentTime: 3,
     };
 
-    const gameStartCountDown: GameEvent = {
-      eventType: EVENTS.COUNTDOWN,
-      game: game,
-      data: countdown,
-    };
+    let counter = 4;
+    const intervalId = setInterval(() => {
+      counter--;
+      const gameStartCountDown: GameEvent = {
+        eventType: EVENTS.COUNTDOWN,
+        game: game,
+        data: { ...countdown, currentTime: counter },
+      };
 
-    server.to(game.gameId).emit(WEBSOCKET_CHANNELS.IN_GAME, gameStartCountDown);
-    this.handleRounds(game, server);
-  }
+      server
+        .to(game.gameId)
+        .emit(WEBSOCKET_CHANNELS.IN_GAME, gameStartCountDown);
 
-  private handleRounds(game: Game, server: Server) {
-    const maxRounds = 3;
-    const amountOfPlayers: number = game.playersJoined.length;
-    setTimeout(() => this.setSelectTime(game.gameId, server), 3000);
-
-    for (let j = 0; j <= maxRounds - 1; j++) {
-      for (let i = 0; i <= amountOfPlayers - 1; i++) {
-        setTimeout(
-          () =>
-            this.startGuessingTime(game.playersJoined[i], game.gameId, server),
-          60000,
-        );
+      if (counter === 0) {
+        clearInterval(intervalId);
+        this.handleSelectRounds(game, server);
       }
-
-      setTimeout(
-        () => this.setSelectTime(game.gameId, server),
-        1000 * amountOfPlayers * 60000,
-      );
-    }
-
-    setTimeout(
-      () => this.endGame(game.gameId, server),
-      1000 * amountOfPlayers * 60000 * maxRounds,
-    );
+    }, 1000);
   }
 
   private endGame(gameId: string, server: Server) {
@@ -172,38 +232,108 @@ export class GameService {
     server.to(game.gameId).emit(WEBSOCKET_CHANNELS.IN_GAME, gameEndEvent);
   }
 
-  private startGuessingTime(player: Player, gameId: string, server: Server) {
-    const game = this.findGameById(gameId);
+  private async startGuessingTime(player: Player, game: Game, server: Server) {
+    console.log(`Guessing time for ${player.username}'s song sent`);
+
     const countdown: CountDown = {
       message: `Guess ${player.username}'s song`,
-      seconds: 60,
+      totalTime: this.turnTime,
+      currentTime: this.turnTime,
+      currentlySelectedPlayer: player,
     };
 
-    const gameStartCountDown: GameEvent = {
-      eventType: EVENTS.COUNTDOWN,
-      game: { ...game, state: GAMESTATE.GUESSING },
-      data: countdown,
-    };
+    let counter = this.turnTime;
+    const intervalId = setInterval(() => {
+      const guessTimeCountDown: GameEvent = {
+        eventType: EVENTS.COUNTDOWN,
+        game: { ...game, state: GAMESTATE.SELECTING },
+        data: { ...countdown, currentTime: counter },
+      };
 
-    server.to(game.gameId).emit(WEBSOCKET_CHANNELS.IN_GAME, gameStartCountDown);
+      server
+        .to(game.gameId)
+        .emit(WEBSOCKET_CHANNELS.IN_GAME, guessTimeCountDown);
+      counter--;
+      if (counter === 0) {
+        clearInterval(intervalId);
+      }
+    }, 1000);
+  }
+
+  private handleGuessingRounds(game: Game, server: Server) {
+    const players = game.playersJoined;
+
+    for (let i = 0; i <= players.length - 1; i++) {
+      if (i == 0) {
+        this.startGuessingTime(players[i], game, server);
+      } else {
+        setTimeout(() => {
+          this.startGuessingTime(players[i], game, server);
+        }, this.turnTime * 1000 * i);
+      }
+    }
   }
 
   private setSelectTime(gameId: string, server: Server) {
+    console.log(`Selecting time starts`);
     const game = this.findGameById(gameId);
     const countdown: CountDown = {
       message: 'Select a song',
-      seconds: 60,
+      totalTime: this.turnTime,
+      currentTime: this.turnTime,
     };
 
-    const selectTimeCountDown: GameEvent = {
-      eventType: EVENTS.COUNTDOWN,
-      game: { ...game, state: GAMESTATE.SELECTING },
-      data: countdown,
-    };
+    let counter = this.turnTime;
+    const intervalId = setInterval(() => {
+      const selectTimeCountDown: GameEvent = {
+        eventType: EVENTS.COUNTDOWN,
+        game: { ...game, state: GAMESTATE.SELECTING },
+        data: { ...countdown, currentTime: counter },
+      };
 
-    server
-      .to(game.gameId)
-      .emit(WEBSOCKET_CHANNELS.IN_GAME, selectTimeCountDown);
+      server
+        .to(game.gameId)
+        .emit(WEBSOCKET_CHANNELS.IN_GAME, selectTimeCountDown);
+      counter--;
+      if (counter === 0) {
+        clearInterval(intervalId);
+        this.handleGuessingRounds(game, server);
+      }
+    }, 1000);
+  }
+
+  private handleSelectRounds(game: Game, server: Server) {
+    const maxRounds = 3;
+
+    for (let i = 0; i <= maxRounds - 1; i++) {
+      setTimeout(() => {
+        console.log('New round starts');
+
+        this.setSelectTime(game.gameId, server);
+      }, 1000 * this.turnTime * i * (game.playersJoined.length + 1));
+    }
+    //Game by Only the Family
+    setTimeout(() => {
+      this.endGame(game.gameId, server);
+    }, 1000 * this.turnTime * maxRounds * (game.playersJoined.length + 1));
+  }
+
+  setSelectedSongForPlayer(selectSongDTO: SelectSongDTO) {
+    const { userId, gameId, song } = selectSongDTO;
+
+    const game = this.findGameById(gameId);
+    const player = game.playersJoined.find((player) => player.userId == userId);
+    const newPlayer = {
+      ...player,
+      selectedSong: song,
+    };
+    console.log(newPlayer);
+    const newPlayers = game.playersJoined.map((player) =>
+      player.userId == newPlayer.userId ? newPlayer : player,
+    );
+
+    const updatedGame = { ...game, playersJoined: newPlayers };
+    this.updateGame(updatedGame);
   }
 
   private findGameById(gameId: string): Game | undefined {
