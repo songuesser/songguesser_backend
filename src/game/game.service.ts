@@ -49,7 +49,20 @@ export class GameService {
     }
 
     if (userIdOfPersonThatSelectedSong == '') {
-      console.log('Cant calculate points dont know who');
+      const chatMessage: ChatMessage = {
+        id: randomUUID(),
+        message: message,
+        time: new Date().toDateString(),
+        player: { userId: user.userId, username: user.username },
+      };
+
+      const chatMessageEvent: GameEvent = {
+        eventType: EVENTS.MESSAGE,
+        game: game,
+        data: chatMessage,
+      };
+
+      server.to(roomId).emit(WEBSOCKET_CHANNELS.IN_GAME, chatMessageEvent);
       return;
     }
 
@@ -105,9 +118,9 @@ export class GameService {
       (player) => player.userId == userIdOfPersonThatSelectedSong,
     ).selectedSong;
 
-    console.log(userIdOfPersonThatSelectedSong);
-    console.log(game.playersJoined);
-    console.log(songThatPersonSet);
+    if (songThatPersonSet == undefined) {
+      return false;
+    }
 
     if (
       songThatPersonSet.name.toLocaleLowerCase().trim() ==
@@ -232,7 +245,12 @@ export class GameService {
     server.to(game.gameId).emit(WEBSOCKET_CHANNELS.IN_GAME, gameEndEvent);
   }
 
-  private async startGuessingTime(player: Player, game: Game, server: Server) {
+  private async startGuessingTime(
+    player: Player,
+    gameId: string,
+    server: Server,
+  ) {
+    const game = this.findGameById(gameId);
     console.log(`Guessing time for ${player.username}'s song sent`);
 
     const countdown: CountDown = {
@@ -246,7 +264,7 @@ export class GameService {
     const intervalId = setInterval(() => {
       const guessTimeCountDown: GameEvent = {
         eventType: EVENTS.COUNTDOWN,
-        game: { ...game, state: GAMESTATE.SELECTING },
+        game: { ...game, state: GAMESTATE.GUESSING },
         data: { ...countdown, currentTime: counter },
       };
 
@@ -260,15 +278,16 @@ export class GameService {
     }, 1000);
   }
 
-  private handleGuessingRounds(game: Game, server: Server) {
+  private handleGuessingRounds(gameId: string, server: Server) {
+    const game = this.findGameById(gameId);
     const players = game.playersJoined;
 
     for (let i = 0; i <= players.length - 1; i++) {
       if (i == 0) {
-        this.startGuessingTime(players[i], game, server);
+        this.startGuessingTime(players[i], game.gameId, server);
       } else {
         setTimeout(() => {
-          this.startGuessingTime(players[i], game, server);
+          this.startGuessingTime(players[i], game.gameId, server);
         }, this.turnTime * 1000 * i);
       }
     }
@@ -297,7 +316,7 @@ export class GameService {
       counter--;
       if (counter === 0) {
         clearInterval(intervalId);
-        this.handleGuessingRounds(game, server);
+        this.handleGuessingRounds(game.gameId, server);
       }
     }, 1000);
   }
