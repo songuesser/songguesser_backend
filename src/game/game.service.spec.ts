@@ -3,13 +3,23 @@ import { GameService } from './game.service';
 import { UserService } from '../user/user.service';
 import { RoomService } from '../room/room.service';
 import { SpotifyService } from '../../spotify/spotify.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('GameService', () => {
   let service: GameService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [GameService, UserService, RoomService, SpotifyService],
+      providers: [
+        {
+          provide: ConfigService,
+          useValue: {},
+        },
+        GameService,
+        UserService,
+        RoomService,
+        SpotifyService,
+      ],
     }).compile();
 
     service = module.get<GameService>(GameService);

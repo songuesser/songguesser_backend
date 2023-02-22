@@ -17,7 +17,7 @@ import { ConfigModule } from '@nestjs/config';
     RoomModule,
     GameModule,
     SpotifyModule,
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
   ],
   controllers: [AppController],
   providers: [
