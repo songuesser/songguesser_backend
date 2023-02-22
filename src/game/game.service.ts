@@ -65,6 +65,13 @@ export class GameService {
       return;
     }
 
+    const userHasRequestedSongInTheFirstPlace =
+      userIdOfPersonThatSelectedSong == userId;
+
+    if (userHasRequestedSongInTheFirstPlace) {
+      return;
+    }
+
     const correct =
       this.checkForCorrectAnswer(
         roomId,
