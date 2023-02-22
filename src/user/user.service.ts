@@ -1,29 +1,40 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { Socket } from 'socket.io';
+import { CreateUserDTO } from 'src/dto/createUserDTO';
 import { UserDTO } from 'src/dto/userDTO';
+import { WEBSOCKET_CHANNELS } from 'src/models/enums/websocket-channels';
 import { User } from 'src/models/user';
+import { RoomService } from '../room/room.service';
 
 @Injectable()
 export class UserService {
   activeUsers: User[] = [];
 
-  createUser = (socket: Socket, userDTO: UserDTO) => {
+  constructor(
+    @Inject(forwardRef(() => RoomService))
+    private readonly roomService: RoomService,
+  ) {}
+
+  createUser = (socket: Socket, createUserDTO: CreateUserDTO) => {
+    const userUID = socket.id;
     const user: User = {
-      userId: userDTO.userId,
-      username: userDTO.username,
+      userId: userUID,
+      username: createUserDTO.username,
       socket: socket,
     };
 
-    if (this._checkForDuplicateUser(userDTO.userId)) {
+    if (this._checkForDuplicateUser(userUID)) {
       socket.emit('Username is already used');
     }
 
     this.activeUsers.push(user);
-    console.log(userDTO.username + ' was created!');
-    socket.emit('accountCreated', {
-      userId: user.userId,
+    console.log(createUserDTO.username + ' was created!');
+
+    socket.emit(WEBSOCKET_CHANNELS.CREATE_ACCOUNT, {
+      userId: userUID,
       username: user.username,
     });
+    this.roomService.listRooms(undefined, socket);
   };
 
   setUserName = (userDTO: UserDTO) => {
@@ -35,17 +46,17 @@ export class UserService {
     const currentUsersUpdates = this.activeUsers.map((user) =>
       user.userId == userDTO.userId
         ? {
-          socket: user.socket,
-          userId: user.userId,
-          username: userDTO.username,
-        }
+            socket: user.socket,
+            userId: user.userId,
+            username: userDTO.username,
+          }
         : user,
     );
 
     this.activeUsers = currentUsersUpdates;
 
     this.getUserInformation(userDTO.userId).socket.emit(
-      'setUsername',
+      WEBSOCKET_CHANNELS.SET_USERNAME,
       userDTO.username,
     );
   };
@@ -62,15 +73,4 @@ export class UserService {
 
   private _checkForDuplicateUser = (username: string) =>
     this.activeUsers.some((user) => user.username == username);
-
-  getSocketByClientId(id: string) {
-    console.error("clientid: " + id)
-    const user = this.activeUsers.find(
-      (user) => user.userId == id);
-      console.log("Found object for userid: " + user.userId)
-    if (user != null) {
-      return user.socket
-    }
-    return null
-  }
 }

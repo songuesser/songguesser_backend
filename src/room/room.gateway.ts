@@ -1,43 +1,53 @@
 import {
-  WebSocketGateway,
-  SubscribeMessage,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  MessageBody,
-  WebSocketServer,
   ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
-import { randomUUID } from 'crypto';
-import { Server, Socket } from 'socket.io';
-import { RoomDTO } from 'src/dto/roomDTO';
+import { Server } from 'socket.io';
 import { RoomService } from './room.service';
+import { WEBSOCKET_CHANNELS } from '../models/enums/websocket-channels';
+import { CreateRoomDTO } from '../dto/createRoomDTO';
+import { RoomDTO } from '../dto/roomDTO';
+import { JoinRoomDTO } from '../dto/joinRoomDTO';
 
 @WebSocketGateway({ cors: true })
-class RoomGateway implements  OnGatewayConnection, OnGatewayDisconnect {
+class RoomGateway implements OnGatewayConnection {
   @WebSocketServer() server: Server;
 
   constructor(private readonly roomService: RoomService) {}
 
-  async handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
-    console.log('Player Name: ' + client.handshake.query.userName)
-    console.log('Player Language: ' + client.handshake.query.language)
+  handleConnection() {
+    this.listRooms();
   }
 
-  async handleDisconnect(client: Socket) {
-
+  @SubscribeMessage(WEBSOCKET_CHANNELS.CREATE_ROOM)
+  createRoom(@MessageBody() createRoomDTO: CreateRoomDTO) {
+    console.log(
+      'creating room: clientid: ' +
+        createRoomDTO.clientId +
+        ', roomName: ' +
+        createRoomDTO.roomName,
+    );
+    this.roomService.createRoom(createRoomDTO, this.server);
   }
 
-  @SubscribeMessage('createRoom')
-  createRoom(@MessageBody() data: {clientId: string, roomName: string}) {
-    console.log("creating room: clientid: " +data.clientId + ", roomName: " +data.roomName)
-    this.roomService.createRoom(data.clientId, data.roomName);
+  @SubscribeMessage(WEBSOCKET_CHANNELS.LIST_ROOMS)
+  listRooms() {
+    console.log('listing rooms...');
+    this.roomService.listRooms(this.server);
   }
 
-  @SubscribeMessage('listRooms')
-  listRooms(@ConnectedSocket() client) {
-    console.log("listing rooms...")
-    this.roomService.listRooms(client);
+  @SubscribeMessage(WEBSOCKET_CHANNELS.SET_ROOM_NAME)
+  setRoomName(@ConnectedSocket() socket, @MessageBody() roomDTO: RoomDTO) {
+    this.roomService.setRoomName(socket, roomDTO, this.server);
+  }
+
+  @SubscribeMessage(WEBSOCKET_CHANNELS.JOIN_ROOM)
+  joinRoom(@ConnectedSocket() socket, @MessageBody() joinRoomDTO: JoinRoomDTO) {
+    this.roomService.assignUserToRoom(socket, joinRoomDTO, this.server);
   }
 }
 

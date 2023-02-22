@@ -10,6 +10,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
+    "dev": "nest start --watch && rm -rf dist/",
     "start:dev": "nest start --watch && rm -rf dist/",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
@@ -22,14 +23,17 @@
   },
   "dependencies": {
     "@nestjs/common": "^9.0.0",
+    "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
     "@nestjs/platform-socket.io": "^9.1.6",
     "@nestjs/websockets": "^9.1.6",
     "@types/socket.io": "^3.0.2",
+    "axios": "^1.2.4",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
-    "rxjs": "^7.2.0"
+    "rxjs": "^7.2.0",
+    "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",

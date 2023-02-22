@@ -6,4 +6,10 @@ class User {
   socket: Socket;
 }
 
+class UserWithOutSocket {
+  username: string;
+  userId: string;
+}
+
+export { UserWithOutSocket };
 export { User };
