@@ -15,7 +15,6 @@ import { randomUUID } from 'crypto';
 import { CountDown } from '../models/countdown';
 import { Rankings } from '../models/rankings';
 import { SpotifyService } from '../../spotify/spotify.service';
-import { Socket } from 'dgram';
 import { Song } from '../models/song';
 import { SelectSongDTO } from '../dto/selectSongDTO';
 
@@ -131,6 +130,22 @@ export class GameService {
       );
 
       const newPlayer = { ...player, points: player.points + 100 };
+      const newPlayers = game.playersJoined.map((player) =>
+        player.userId == userId ? newPlayer : player,
+      );
+      const updatedGame = { ...game, playersJoined: newPlayers };
+      this.updateGame(updatedGame);
+
+      return true;
+    } else if (
+      songThatPersonSet.artist.toLocaleLowerCase().trim() ==
+      message.toLowerCase().trim()
+    ) {
+      const player = game.playersJoined.find(
+        (player) => player.userId == userId,
+      );
+
+      const newPlayer = { ...player, points: player.points + 50 };
       const newPlayers = game.playersJoined.map((player) =>
         player.userId == userId ? newPlayer : player,
       );
