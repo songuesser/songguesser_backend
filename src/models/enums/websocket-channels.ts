@@ -12,6 +12,7 @@ const enum WEBSOCKET_CHANNELS {
   RUNNING_GAME = 'runningGame',
   MATCHING_SONGS = 'matchingSongs',
   SELECT_SONG = 'selectSong',
+  LEAVE_ROOM = 'leaveRoom',
 }
 
 export { WEBSOCKET_CHANNELS };
