@@ -43,7 +43,6 @@ export class RoomService {
 
     this.activeRooms.push(room);
     userSocket.join(room.roomId);
-    console.log(roomName + ' was created!');
     userSocket.emit(WEBSOCKET_CHANNELS.CREATE_ROOM, {
       roomId: room.roomId,
       roomName: room.roomName,
@@ -101,7 +100,6 @@ export class RoomService {
       return;
     }
 
-    console.log(socket.id);
     const user: User = this.userService.getUserInformation(socket.id);
     const players = room.players;
 
@@ -145,4 +143,6 @@ export class RoomService {
 
     this.activeRooms = currentRoomsUpdates;
   };
+
+  leaveRoom = () => {};
 }

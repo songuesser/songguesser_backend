@@ -25,18 +25,11 @@ class RoomGateway implements OnGatewayConnection {
 
   @SubscribeMessage(WEBSOCKET_CHANNELS.CREATE_ROOM)
   createRoom(@MessageBody() createRoomDTO: CreateRoomDTO) {
-    console.log(
-      'creating room: clientid: ' +
-        createRoomDTO.clientId +
-        ', roomName: ' +
-        createRoomDTO.roomName,
-    );
     this.roomService.createRoom(createRoomDTO, this.server);
   }
 
   @SubscribeMessage(WEBSOCKET_CHANNELS.LIST_ROOMS)
   listRooms() {
-    console.log('listing rooms...');
     this.roomService.listRooms(this.server);
   }
 
@@ -48,6 +41,11 @@ class RoomGateway implements OnGatewayConnection {
   @SubscribeMessage(WEBSOCKET_CHANNELS.JOIN_ROOM)
   joinRoom(@ConnectedSocket() socket, @MessageBody() joinRoomDTO: JoinRoomDTO) {
     this.roomService.assignUserToRoom(socket, joinRoomDTO, this.server);
+  }
+
+  @SubscribeMessage(WEBSOCKET_CHANNELS.LEAVE_ROOM)
+  leaveRoom(@ConnectedSocket() socket) {
+    this.roomService.leaveRoom();
   }
 }
 

@@ -37,11 +37,7 @@ export class SpotifyService implements OnModuleInit {
         data: new URLSearchParams(data),
       });
       this.access_token = response.data.access_token;
-    } catch (error) {
-      console.log(error);
-      console.log(clientId);
-      console.log(clientSecret);
-    }
+    } catch (error) {}
 
     this.spotifyApi.setAccessToken(this.access_token);
   }

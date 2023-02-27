@@ -28,8 +28,6 @@ export class UserService {
     }
 
     this.activeUsers.push(user);
-    console.log(createUserDTO.username + ' was created!');
-
     socket.emit(WEBSOCKET_CHANNELS.CREATE_ACCOUNT, {
       userId: userUID,
       username: user.username,
