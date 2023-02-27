@@ -14,6 +14,8 @@ import { AssignPlayerToGameDTO } from '../dto/assignPlayerToGameDTO';
 import { Song } from '../models/song';
 import { Socket } from 'dgram';
 import { SelectSongDTO } from '../dto/selectSongDTO';
+import { Player } from 'src/models/player';
+import { LeaveRoomDTO } from 'src/dto/leaveRoomDTO';
 
 @WebSocketGateway({ cors: true })
 class GameGateway {
@@ -41,6 +43,11 @@ class GameGateway {
   @SubscribeMessage(WEBSOCKET_CHANNELS.SELECT_SONG)
   setSelectedSong(@MessageBody() selectSongDTO: SelectSongDTO) {
     this.gameService.setSelectedSongForPlayer(selectSongDTO);
+  }
+
+  @SubscribeMessage(WEBSOCKET_CHANNELS.LEAVE_ROOM)
+  leaveRoom(@MessageBody() leaveRoomDTO: LeaveRoomDTO) {
+    this.gameService.leaveRoom(leaveRoomDTO, this.server);
   }
 }
 

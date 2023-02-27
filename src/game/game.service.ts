@@ -17,6 +17,8 @@ import { Rankings } from '../models/rankings';
 import { SpotifyService } from '../../spotify/spotify.service';
 import { Song } from '../models/song';
 import { SelectSongDTO } from '../dto/selectSongDTO';
+import { Socket } from 'dgram';
+import { LeaveRoomDTO } from 'src/dto/leaveRoomDTO';
 
 @Injectable()
 export class GameService {
@@ -388,4 +390,21 @@ export class GameService {
 
     this.runningGames = newCurrentGames;
   }
+
+  leaveRoom(leaveRoomDTO: LeaveRoomDTO, server: Server){
+
+    const game = this.findGameById(leaveRoomDTO.roomId);
+
+
+    const leaveRoomEvent: GameEvent = {
+      eventType: EVENTS.PLAYER_LEFT,
+      game: game,
+      data: leaveRoomDTO.player,
+    };
+    server.to(leaveRoomDTO.roomId).emit(WEBSOCKET_CHANNELS.IN_GAME, leaveRoomEvent);
+
+
+  }
+
+
 }
